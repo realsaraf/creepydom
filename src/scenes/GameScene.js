@@ -43,6 +43,9 @@ class GameScene extends Phaser.Scene {
         
         // Setup keyboard controls
         this.setupKeyboardControls();
+        
+        // Setup touch controls for mobile devices
+        this.setupTouchControls();
     }
 
     setupKeyboardControls() {
@@ -86,6 +89,106 @@ class GameScene extends Phaser.Scene {
             // Move to target position
             this.onCellClicked(targetX, targetY);
         });
+    }
+
+    setupTouchControls() {
+        // Variables for touch/swipe detection
+        this.touchStartX = 0;
+        this.touchStartY = 0;
+        this.touchEndX = 0;
+        this.touchEndY = 0;
+        this.minSwipeDistance = 50; // minimum distance for a swipe
+
+        // Add touch start event
+        this.input.on('pointerdown', (pointer) => {
+            if (this.gameOver || this.levelComplete || !this.player || !this.player.canMove) {
+                return;
+            }
+            
+            this.touchStartX = pointer.x;
+            this.touchStartY = pointer.y;
+        });
+
+        // Add touch end event for swipe detection
+        this.input.on('pointerup', (pointer) => {
+            if (this.gameOver || this.levelComplete || !this.player || !this.player.canMove) {
+                return;
+            }
+
+            this.touchEndX = pointer.x;
+            this.touchEndY = pointer.y;
+
+            this.handleSwipe();
+        });
+
+        // Also handle tap-to-move (click on adjacent cells)
+        this.input.on('pointerdown', (pointer) => {
+            if (this.gameOver || this.levelComplete || !this.player || !this.player.canMove) {
+                return;
+            }
+
+            // Convert screen coordinates to grid coordinates
+            const gridPos = this.worldToGrid(pointer.x, pointer.y);
+            
+            // Check if the tap is within the game grid
+            if (gridPos.x >= 0 && gridPos.x < this.gridSize && 
+                gridPos.y >= 0 && gridPos.y < this.gridSize) {
+                
+                // Check if it's an adjacent cell
+                const dx = Math.abs(gridPos.x - this.player.gridX);
+                const dy = Math.abs(gridPos.y - this.player.gridY);
+                
+                if (dx + dy === 1) { // Adjacent cell
+                    this.onCellClicked(gridPos.x, gridPos.y);
+                    this.triggerHapticFeedback();
+                }
+            }
+        });
+    }
+
+    handleSwipe() {
+        const deltaX = this.touchEndX - this.touchStartX;
+        const deltaY = this.touchEndY - this.touchStartY;
+        
+        // Check if swipe distance is sufficient
+        const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+        if (distance < this.minSwipeDistance) {
+            return; // Not a swipe, just a tap
+        }
+
+        // Determine swipe direction
+        let moveX = 0;
+        let moveY = 0;
+
+        if (Math.abs(deltaX) > Math.abs(deltaY)) {
+            // Horizontal swipe
+            moveX = deltaX > 0 ? 1 : -1;
+        } else {
+            // Vertical swipe
+            moveY = deltaY > 0 ? 1 : -1;
+        }
+
+        // Calculate target position
+        const targetX = this.player.gridX + moveX;
+        const targetY = this.player.gridY + moveY;
+        
+        // Check bounds
+        if (targetX < 0 || targetX >= this.gridSize || targetY < 0 || targetY >= this.gridSize) {
+            return;
+        }
+        
+        // Move to target position
+        this.onCellClicked(targetX, targetY);
+        
+        // Add haptic feedback for mobile devices
+        this.triggerHapticFeedback();
+    }
+
+    triggerHapticFeedback() {
+        // Trigger haptic feedback if available (iOS/Android)
+        if (navigator.vibrate) {
+            navigator.vibrate(50); // Short vibration
+        }
     }
 
     createUI() {
@@ -150,8 +253,43 @@ class GameScene extends Phaser.Scene {
             this.scene.restart();
         });
 
+        // Add mobile controls instructions
+        this.addMobileControlsInfo();
+
         // Create sidebar stats panel (non-overlapping)
         this.createSidebarStatsPanel();
+    }
+
+    addMobileControlsInfo() {
+        // Check if this is likely a touch device
+        const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+        
+        if (isTouchDevice) {
+            const width = this.cameras.main.width;
+            
+            // Add touch controls info at the bottom
+            this.add.text(20, this.cameras.main.height - 60, '📱 TOUCH CONTROLS:', {
+                fontSize: '14px',
+                fill: '#8B4513',
+                fontWeight: 'bold'
+            });
+            
+            this.add.text(20, this.cameras.main.height - 40, '👆 Tap adjacent cells to move', {
+                fontSize: '12px',
+                fill: '#654321'
+            });
+            
+            this.add.text(20, this.cameras.main.height - 20, '👋 Swipe to move in that direction', {
+                fontSize: '12px',
+                fill: '#654321'
+            });
+        } else {
+            // Show keyboard controls for desktop
+            this.add.text(20, this.cameras.main.height - 40, '⌨️ Use Arrow Keys or WASD to move', {
+                fontSize: '12px',
+                fill: '#654321'
+            });
+        }
     }
 
     createJungleBackground() {
