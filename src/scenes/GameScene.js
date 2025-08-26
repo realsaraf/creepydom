@@ -4,6 +4,9 @@ class GameScene extends Phaser.Scene {
     }
 
     create() {
+        // Prevent accidental move at game start
+        this.gameStartTime = Date.now();
+        
         // Get current level and sound manager
         this.currentLevel = this.registry.get('currentLevel') || 1;
         this.soundManager = this.registry.get('soundManager');
@@ -57,6 +60,10 @@ class GameScene extends Phaser.Scene {
         
         // Handle key presses
         this.input.keyboard.on('keydown', (event) => {
+            // Ignore keydown events within 500ms of game start
+            if (Date.now() - this.gameStartTime < 500) {
+                return;
+            }
             if (this.gameOver || this.levelComplete || !this.player || !this.player.canMove) {
                 return;
             }
@@ -104,43 +111,40 @@ class GameScene extends Phaser.Scene {
             if (this.gameOver || this.levelComplete || !this.player || !this.player.canMove) {
                 return;
             }
-            
             this.touchStartX = pointer.x;
             this.touchStartY = pointer.y;
         });
 
-        // Add touch end event for swipe detection
+        // On touch end, decide if it's a swipe or tap-to-move
         this.input.on('pointerup', (pointer) => {
+            // Ignore pointerup events within 500ms of game start
+            if (Date.now() - this.gameStartTime < 500) {
+                return;
+            }
             if (this.gameOver || this.levelComplete || !this.player || !this.player.canMove) {
                 return;
             }
-
             this.touchEndX = pointer.x;
             this.touchEndY = pointer.y;
 
-            this.handleSwipe();
-        });
+            const deltaX = this.touchEndX - this.touchStartX;
+            const deltaY = this.touchEndY - this.touchStartY;
+            const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
 
-        // Also handle tap-to-move (click on adjacent cells)
-        this.input.on('pointerdown', (pointer) => {
-            if (this.gameOver || this.levelComplete || !this.player || !this.player.canMove) {
-                return;
-            }
-
-            // Convert screen coordinates to grid coordinates
-            const gridPos = this.worldToGrid(pointer.x, pointer.y);
-            
-            // Check if the tap is within the game grid
-            if (gridPos.x >= 0 && gridPos.x < this.gridSize && 
-                gridPos.y >= 0 && gridPos.y < this.gridSize) {
-                
-                // Check if it's an adjacent cell
-                const dx = Math.abs(gridPos.x - this.player.gridX);
-                const dy = Math.abs(gridPos.y - this.player.gridY);
-                
-                if (dx + dy === 1) { // Adjacent cell
-                    this.onCellClicked(gridPos.x, gridPos.y);
-                    this.triggerHapticFeedback();
+            if (distance >= this.minSwipeDistance) {
+                // Handle swipe
+                this.handleSwipe();
+            } else {
+                // Handle tap-to-move
+                const gridPos = this.worldToGrid(pointer.x, pointer.y);
+                if (gridPos.x >= 0 && gridPos.x < this.gridSize && 
+                    gridPos.y >= 0 && gridPos.y < this.gridSize) {
+                    const dx = Math.abs(gridPos.x - this.player.gridX);
+                    const dy = Math.abs(gridPos.y - this.player.gridY);
+                    if (dx + dy === 1) { // Adjacent cell
+                        this.onCellClicked(gridPos.x, gridPos.y);
+                        this.triggerHapticFeedback();
+                    }
                 }
             }
         });
@@ -525,18 +529,48 @@ class GameScene extends Phaser.Scene {
     }
 
     createPlayer() {
-        // Find empty spot for player
+        // Find a safe empty spot for player (not adjacent to dangerous insect)
+        let safeSpots = [];
+        for (let x = 0; x < this.gridSize; x++) {
+            for (let y = 0; y < this.gridSize; y++) {
+                if (this.grid[x][y] !== null) continue;
+                let safe = true;
+                // Check adjacent cells
+                for (let dx = -1; dx <= 1; dx++) {
+                    for (let dy = -1; dy <= 1; dy++) {
+                        if (Math.abs(dx) + Math.abs(dy) !== 1) continue; // Only orthogonal
+                        const nx = x + dx;
+                        const ny = y + dy;
+                        if (nx < 0 || nx >= this.gridSize || ny < 0 || ny >= this.gridSize) continue;
+                        const neighbor = this.grid[nx][ny];
+                        if (neighbor && neighbor instanceof Insect) {
+                            // Only dangerous if player cannot eat
+                            const playerTypeId = this.levelData.startType;
+                            if (!GameData.canEat(playerTypeId, neighbor.getInsectTypeId())) {
+                                safe = false;
+                            }
+                        }
+                    }
+                }
+                if (safe) safeSpots.push({x, y});
+            }
+        }
         let playerX, playerY;
-        do {
-            playerX = Phaser.Math.Between(0, this.gridSize - 1);
-            playerY = Phaser.Math.Between(0, this.gridSize - 1);
-        } while (this.grid[playerX][playerY] !== null);
-
+        if (safeSpots.length > 0) {
+            const spot = safeSpots[Phaser.Math.Between(0, safeSpots.length - 1)];
+            playerX = spot.x;
+            playerY = spot.y;
+        } else {
+            // Fallback: any empty spot
+            do {
+                playerX = Phaser.Math.Between(0, this.gridSize - 1);
+                playerY = Phaser.Math.Between(0, this.gridSize - 1);
+            } while (this.grid[playerX][playerY] !== null);
+        }
         const worldPos = this.gridToWorld(playerX, playerY);
         this.player = new Player(this, worldPos.x, worldPos.y, this.levelData.startType);
         this.player.setGridPosition(playerX, playerY);
         this.grid[playerX][playerY] = this.player;
-        
         this.updatePlayerInfo();
     }
 
@@ -570,14 +604,17 @@ class GameScene extends Phaser.Scene {
         // Check if adjacent
         const dx = Math.abs(gridX - this.player.gridX);
         const dy = Math.abs(gridY - this.player.gridY);
-        
         if (dx + dy !== 1) return; // Must be adjacent
-        
+
+        // Start timer on first move
+        if (!this.timerStarted) {
+            this.startTimer();
+        }
+
         // Move player
         this.grid[this.player.gridX][this.player.gridY] = null;
         this.grid[gridX][gridY] = this.player;
         this.player.setGridPosition(gridX, gridY);
-        
         const worldPos = this.gridToWorld(gridX, gridY);
         this.player.setPosition(worldPos.x, worldPos.y);
     }
@@ -597,24 +634,27 @@ class GameScene extends Phaser.Scene {
         // Check if adjacent
         const dx = Math.abs(insect.gridX - this.player.gridX);
         const dy = Math.abs(insect.gridY - this.player.gridY);
-        
         if (dx + dy !== 1) return;
+
+        // Start timer on first move
+        if (!this.timerStarted) {
+            this.startTimer();
+        }
 
         // Eat the insect
         this.player.eatInsect(insect);
-        
+
         // Remove from grid and arrays
         this.grid[insect.gridX][insect.gridY] = null;
         const index = this.insects.indexOf(insect);
         if (index > -1) {
             this.insects.splice(index, 1);
         }
-        
+
         // Move player to insect position
         this.grid[this.player.gridX][this.player.gridY] = null;
         this.grid[insect.gridX][insect.gridY] = this.player;
         this.player.setGridPosition(insect.gridX, insect.gridY);
-        
         const worldPos = this.gridToWorld(insect.gridX, insect.gridY);
         this.player.setPosition(worldPos.x, worldPos.y);
         
