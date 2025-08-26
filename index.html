@@ -2,60 +2,97 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>CreepyDom - Evolution Game</title>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka+One:wght@400&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
     <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
         body {
             margin: 0;
             padding: 0;
-            background: linear-gradient(135deg, #2E8B57, #228B22, #32CD32, #90EE90);
-            background-size: 400% 400%;
-            animation: jungleGradient 10s ease infinite;
-            font-family: 'Impact', 'Arial Black', sans-serif;
+            background: linear-gradient(135deg, #FF6B8A, #4ECDC4, #45B7D1, #96CEB4, #FFEAA7);
+            background-size: 300% 300%;
+            animation: candyGradient 8s ease infinite;
+            font-family: 'Nunito', sans-serif;
             display: flex;
             justify-content: center;
             align-items: center;
             min-height: 100vh;
             overflow: hidden;
+            position: relative;
+        }
+
+        /* Candy Crush-like floating bubbles */
+        body::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: 
+                radial-gradient(circle at 20% 80%, rgba(255, 107, 138, 0.3) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(78, 205, 196, 0.3) 0%, transparent 50%),
+                radial-gradient(circle at 40% 40%, rgba(150, 206, 180, 0.2) 0%, transparent 50%);
+            animation: bubbleFloat 12s ease-in-out infinite;
+            pointer-events: none;
+            z-index: 0;
         }
         
-        @keyframes jungleGradient {
+        @keyframes candyGradient {
             0% { background-position: 0% 50%; }
             50% { background-position: 100% 50%; }
             100% { background-position: 0% 50%; }
         }
-        
-        #game-container {
-            border: 6px solid #8B4513;
-            border-radius: 15px;
-            box-shadow: 0 0 40px rgba(139, 69, 19, 0.8), 
-                        0 0 80px rgba(34, 139, 34, 0.6),
-                        inset 0 0 20px rgba(255, 255, 255, 0.1);
-            background: linear-gradient(45deg, #F5DEB3, #FAEBD7);
-            position: relative;
+
+        @keyframes bubbleFloat {
+            0%, 100% { transform: translateY(0px) rotate(0deg); opacity: 0.7; }
+            50% { transform: translateY(-20px) rotate(5deg); opacity: 1; }
         }
         
+        #game-container {
+            border: 0;
+            border-radius: 25px;
+            box-shadow: 
+                0 20px 60px rgba(0, 0, 0, 0.2),
+                0 8px 20px rgba(255, 255, 255, 0.1),
+                inset 0 1px 0 rgba(255, 255, 255, 0.3);
+            background: linear-gradient(145deg, #ffffff, #f8f9fa);
+            position: relative;
+            z-index: 1;
+            max-width: 100vw;
+            max-height: 100vh;
+            overflow: hidden;
+        }
+
         #game-container::before {
             content: '';
             position: absolute;
-            top: -8px;
-            left: -8px;
-            right: -8px;
-            bottom: -8px;
-            background: linear-gradient(45deg, #8B4513, #A0522D, #228B22, #32CD32);
-            border-radius: 20px;
+            top: -3px;
+            left: -3px;
+            right: -3px;
+            bottom: -3px;
+            background: linear-gradient(45deg, #FF6B8A, #4ECDC4, #45B7D1, #96CEB4, #FFEAA7, #FF6B8A);
+            background-size: 300% 300%;
+            border-radius: 28px;
             z-index: -1;
-            animation: jungleBorderGlow 4s ease-in-out infinite alternate;
+            animation: candyBorder 6s ease infinite;
         }
         
-        @keyframes jungleBorderGlow {
-            0% { opacity: 0.8; transform: scale(1); }
-            100% { opacity: 1; transform: scale(1.02); }
+        @keyframes candyBorder {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
         }
-        
+
         canvas {
             display: block;
-            border-radius: 10px;
+            border-radius: 22px;
             /* Touch-friendly settings for mobile */
             touch-action: manipulation;
             -webkit-touch-callout: none;
@@ -65,8 +102,8 @@
             -ms-user-select: none;
             user-select: none;
         }
-        
-        /* Mobile-specific styles */
+
+        /* Mobile-first responsive design */
         @media (max-width: 768px) {
             body {
                 padding: 10px;
@@ -74,27 +111,73 @@
             }
             
             #game-container {
-                border-width: 4px;
-                max-width: 100vw;
-                max-height: 100vh;
+                width: 100vw;
+                height: 100vh;
+                border-radius: 0;
+                box-shadow: none;
             }
-            
-            /* Prevent zoom on mobile */
-            input, select, textarea {
-                font-size: 16px;
+
+            #game-container::before {
+                display: none;
+            }
+
+            canvas {
+                border-radius: 0;
+                width: 100% !important;
+                height: 100% !important;
             }
         }
-        
+
+        @media (min-width: 769px) {
+            #game-container {
+                width: 400px;
+                height: 700px;
+            }
+        }
+
+        /* Tablet styles */
+        @media (min-width: 768px) and (max-width: 1024px) {
+            #game-container {
+                width: 500px;
+                height: 800px;
+            }
+        }
+
         .loading {
             position: absolute;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            color: #8B4513;
-            font-size: 24px;
-            font-weight: bold;
+            background: linear-gradient(45deg, #FF6B8A, #4ECDC4);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            font-family: 'Fredoka One', cursive;
+            font-size: clamp(18px, 5vw, 28px);
+            font-weight: 400;
             z-index: 1000;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+            text-align: center;
+            animation: loadingPulse 2s ease-in-out infinite;
+        }
+
+        @keyframes loadingPulse {
+            0%, 100% { transform: translate(-50%, -50%) scale(1); opacity: 0.8; }
+            50% { transform: translate(-50%, -50%) scale(1.1); opacity: 1; }
+        }
+
+        /* Prevent iOS zoom and improve touch experience */
+        input, select, textarea, button {
+            font-size: 16px;
+        }
+
+        /* Hide scrollbars while keeping functionality */
+        ::-webkit-scrollbar {
+            display: none;
+        }
+
+        html {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
         }
     </style>
 </head>
@@ -104,17 +187,17 @@
     </div>
     
     <script src="https://cdn.jsdelivr.net/npm/phaser@3.70.0/dist/phaser.min.js"></script>
-    <script src="src/utils/GameData.js?v=12"></script>
-    <script src="src/utils/SoundManager.js?v=12"></script>
-    <script src="src/entities/Insect.js?v=12"></script>
-    <script src="src/entities/MysteryBox.js?v=12"></script>
-    <script src="src/entities/Player.js?v=12"></script>
-    <script src="src/scenes/BootScene.js?v=12"></script>
-    <script src="src/scenes/MenuScene.js?v=12"></script>
-    <script src="src/scenes/LevelSelectScene.js?v=12"></script>
-    <script src="src/scenes/GameScene.js?v=12"></script>
-    <script src="src/scenes/GameOverScene.js?v=12"></script>
-    <script src="src/scenes/LevelCompleteScene.js?v=12"></script>
-    <script src="src/Game.js?v=12"></script>
+    <script src="src/utils/GameData.js?v=15"></script>
+    <script src="src/utils/SoundManager.js?v=15"></script>
+    <script src="src/entities/Insect.js?v=15"></script>
+    <script src="src/entities/MysteryBox.js?v=15"></script>
+    <script src="src/entities/Player.js?v=15"></script>
+    <script src="src/scenes/BootScene.js?v=15"></script>
+    <script src="src/scenes/MenuScene.js?v=15"></script>
+    <script src="src/scenes/LevelSelectScene.js?v=18"></script>
+    <script src="src/scenes/GameScene.js?v=15"></script>
+    <script src="src/scenes/GameOverScene.js?v=15"></script>
+    <script src="src/scenes/LevelCompleteScene.js?v=15"></script>
+    <script src="src/Game.js?v=15"></script>
 </body>
 </html>

@@ -199,69 +199,181 @@ class GameScene extends Phaser.Scene {
         const width = this.cameras.main.width;
         const height = this.cameras.main.height;
 
-        // Jungle-themed background
+        // Create main game background (beige/cream color like in reference)
         this.add.rectangle(width / 2, height / 2, width, height, 0xF5DEB3);
         
-        // Add jungle background elements
-        this.createJungleBackground();
-
-        // Top sports-style header bar
-        const headerBar = this.add.rectangle((width - 200) / 2, 40, width - 200, 70, 0x228B22);
-        headerBar.setStrokeStyle(4, 0x8B4513);
+        // Create game area background (left side, beige)
+        const gameAreaWidth = width * 0.6; // 60% for game area
+        this.add.rectangle(gameAreaWidth / 2, height / 2, gameAreaWidth, height, 0xF5DEB3);
         
-        // Level info with jungle theme
-        this.add.text(30, 25, `🌴 LEVEL ${this.currentLevel}`, {
-            fontSize: '20px',
-            fill: '#FFFFFF',
-            fontWeight: 'bold',
-            fontFamily: 'Impact, Arial Black, sans-serif',
-            stroke: '#8B4513',
-            strokeThickness: 3
-        }).setOrigin(0, 0.5);
-
-        // Target info with sports styling
-        const targetType = GameData.getInsectType(this.levelData.targetType);
-        this.add.text((width - 200) / 2, 25, `🏆 TARGET: ${targetType.name.toUpperCase()}`, {
-            fontSize: '16px',
-            fill: '#FFFF00',
-            fontWeight: 'bold',
-            fontFamily: 'Impact, Arial Black, sans-serif',
-            stroke: '#8B4513',
-            strokeThickness: 2
-        }).setOrigin(0.5, 0.5);
-
-        // Timer display in header
-        this.timerBg = this.add.rectangle((width - 200) - 80, 25, 120, 35, 0x8B4513);
-        this.timerBg.setStrokeStyle(3, 0xFFD700);
+        // Create stats panel background (right side, green)
+        const statsWidth = width * 0.4; // 40% for stats
+        const statsPanel = this.add.rectangle(gameAreaWidth + statsWidth / 2, height / 2, statsWidth, height, 0x228B22);
         
-        this.timerText = this.add.text((width - 200) - 80, 25, this.formatTime(this.timeRemaining), {
-            fontSize: '18px',
+        // Top brown header bar with timer
+        const headerHeight = 60;
+        const headerBar = this.add.rectangle(width / 2, headerHeight / 2, width, headerHeight, 0x8B4513);
+        
+        // Timer in header (center)
+        this.timerText = this.add.text(width / 2, headerHeight / 2, this.formatTime(this.timeRemaining), {
+            fontSize: '24px',
             fill: '#FFFF00',
             fontWeight: 'bold',
             fontFamily: 'Impact, Arial Black, sans-serif'
-        }).setOrigin(0.5, 0.5);
-
-        // Timer icon
-        this.add.text((width - 200) - 130, 25, '⏱️', {
-            fontSize: '20px'
-        }).setOrigin(0.5, 0.5);
-
-        // Sports-style action buttons in header
-        this.createSportsButton((width - 200) - 80, 55, 'MENU', 60, 20, 0x32CD32, () => {
-            this.soundManager.playClickSound();
+        }).setOrigin(0.5);
+        
+        // Retry button (left side of header)
+        this.createHeaderButton(100, headerHeight / 2, 'RETRY', 0xFF4444, () => {
+            if (this.soundManager) this.soundManager.playClickSound();
+            this.scene.restart();
+        });
+        
+        // Menu button (right side of header)
+        this.createHeaderButton(width - 100, headerHeight / 2, 'MENU', 0x44FF44, () => {
+            if (this.soundManager) this.soundManager.playClickSound();
             this.scene.start('MenuScene');
         });
 
-        this.createSportsButton((width - 200) - 150, 55, 'RETRY', 60, 20, 0xFF6347, () => {
-            this.soundManager.playClickSound();
-            this.scene.restart();
+        // Update game area positioning
+        this.startX = (gameAreaWidth - (this.gridSize * this.cellSize)) / 2;
+        this.startY = headerHeight + 20;
+
+        // Create stats panel content
+        this.createStatsPanel(gameAreaWidth, statsWidth, height);
+        
+        // Add jungle decorations only in game area
+        this.createJungleBackground(gameAreaWidth);
+    }
+
+    createHeaderButton(x, y, text, color, callback) {
+        const button = this.add.rectangle(x, y, 80, 40, color);
+        button.setStrokeStyle(2, 0x000000);
+        button.setInteractive();
+        
+        const buttonText = this.add.text(x, y, text, {
+            fontSize: '14px',
+            fill: '#FFFFFF',
+            fontWeight: 'bold',
+            fontFamily: 'Impact, Arial Black, sans-serif'
+        }).setOrigin(0.5);
+
+        button.on('pointerover', () => {
+            button.setScale(1.1);
         });
 
-        // Add mobile controls instructions
-        this.addMobileControlsInfo();
+        button.on('pointerout', () => {
+            button.setScale(1);
+        });
 
-        // Create sidebar stats panel (non-overlapping)
-        this.createSidebarStatsPanel();
+        button.on('pointerdown', () => {
+            button.setScale(0.95);
+            callback();
+        });
+
+        button.on('pointerup', () => {
+            button.setScale(1.1);
+        });
+    }
+
+    createStatsPanel(gameAreaWidth, statsWidth, height) {
+        const panelX = gameAreaWidth + 20;
+        const headerHeight = 60;
+        
+        // "GAME STATS" title
+        this.add.text(panelX, headerHeight + 30, 'GAME STATS', {
+            fontSize: '20px',
+            fill: '#FFFF00',
+            fontWeight: 'bold',
+            fontFamily: 'Impact, Arial Black, sans-serif'
+        });
+        
+        // Current insect section
+        let yPos = headerHeight + 80;
+        this.add.text(panelX, yPos, 'CURRENT', {
+            fontSize: '14px',
+            fill: '#FFFFFF',
+            fontWeight: 'bold'
+        });
+        
+        // Current insect display (yellow circle like in reference)
+        this.currentInsectDisplay = this.add.circle(panelX + 60, yPos + 30, 25, 0xFFFF00);
+        this.currentInsectDisplay.setStrokeStyle(3, 0x000000);
+        
+        // Mite section
+        yPos += 100;
+        this.add.text(panelX, yPos, 'MITE', {
+            fontSize: '14px',
+            fill: '#FFFFFF',
+            fontWeight: 'bold'
+        });
+        
+        // Mite display (brown circle)
+        this.add.circle(panelX + 60, yPos + 30, 25, 0x8B4513);
+        this.add.circle(panelX + 60, yPos + 30, 25, 0x000000, 0).setStrokeStyle(3, 0x000000);
+        
+        // Score section
+        yPos += 100;
+        this.add.text(panelX, yPos, 'SCORE', {
+            fontSize: '14px',
+            fill: '#FFFFFF',
+            fontWeight: 'bold'
+        });
+        
+        this.scoreText = this.add.text(panelX, yPos + 30, '1', {
+            fontSize: '18px',
+            fill: '#FFFF00',
+            fontWeight: 'bold'
+        });
+        
+        // Target section
+        yPos += 100;
+        this.add.text(panelX, yPos, 'TARGET', {
+            fontSize: '14px',
+            fill: '#FFFFFF',
+            fontWeight: 'bold'
+        });
+        
+        // Target display (flea - gray circle)
+        this.add.text(panelX, yPos + 25, 'FLEA', {
+            fontSize: '14px',
+            fill: '#FFFF00',
+            fontWeight: 'bold'
+        });
+        
+        this.add.circle(panelX + 60, yPos + 50, 25, 0x666666);
+        this.add.circle(panelX + 60, yPos + 50, 25, 0x000000, 0).setStrokeStyle(3, 0x000000);
+        
+        // Controls section at bottom
+        yPos = height - 120;
+        this.add.text(panelX, yPos, 'CONTROLS', {
+            fontSize: '14px',
+            fill: '#FFFFFF',
+            fontWeight: 'bold'
+        });
+        
+        this.add.text(panelX, yPos + 25, '↑ ↓ ←', {
+            fontSize: '16px',
+            fill: '#FFFFFF'
+        });
+        
+        this.add.text(panelX, yPos + 45, 'or WASD', {
+            fontSize: '12px',
+            fill: '#FFFFFF'
+        });
+        
+        // Flavor text
+        yPos += 80;
+        this.add.text(panelX, yPos, 'EAT SMALLER BUGS', {
+            fontSize: '12px',
+            fill: '#FFFF00',
+            fontWeight: 'bold'
+        });
+        
+        this.add.text(panelX, yPos + 15, 'AVOID BIGGER ONES!', {
+            fontSize: '12px',
+            fill: '#FFFF00',
+            fontWeight: 'bold'
+        });
     }
 
     addMobileControlsInfo() {
@@ -296,25 +408,24 @@ class GameScene extends Phaser.Scene {
         }
     }
 
-    createJungleBackground() {
-        // Add jungle vines and leaves (avoid sidebar area)
-        const gameAreaWidth = this.cameras.main.width - 200; // Avoid sidebar
-        for (let i = 0; i < 12; i++) {
-            const x = Phaser.Math.Between(0, gameAreaWidth);
-            const y = Phaser.Math.Between(80, this.cameras.main.height - 80);
-            const jungleElements = ['🌿', '🍃', '🌱', '🦋', '🐛', '🌳'];
+    createJungleBackground(gameAreaWidth) {
+        // Add jungle vines and leaves only in game area (left side)
+        for (let i = 0; i < 8; i++) {
+            const x = Phaser.Math.Between(0, gameAreaWidth - 20);
+            const y = Phaser.Math.Between(100, this.cameras.main.height - 80);
+            const jungleElements = ['🌿', '🍃', '🌱', '🦋'];
             const element = jungleElements[Math.floor(Math.random() * jungleElements.length)];
             
             const decoration = this.add.text(x, y, element, {
                 fontSize: '16px',
-                alpha: 0.4
+                alpha: 0.3
             });
             
             // Gentle swaying animation like jungle breeze
             this.tweens.add({
                 targets: decoration,
-                x: x + Phaser.Math.Between(-20, 20),
-                alpha: 0.7,
+                x: x + Phaser.Math.Between(-15, 15),
+                alpha: 0.6,
                 duration: 4000 + Math.random() * 2000,
                 yoyo: true,
                 repeat: -1,
@@ -322,177 +433,6 @@ class GameScene extends Phaser.Scene {
             });
         }
     }
-
-    createSportsButton(x, y, text, width, height, color, callback) {
-        const button = this.add.rectangle(x, y, width, height, color);
-        button.setStrokeStyle(3, 0x8B4513);
-        button.setInteractive();
-        
-        const buttonText = this.add.text(x, y, text, {
-            fontSize: '12px',
-            fill: '#FFFFFF',
-            fontWeight: 'bold',
-            fontFamily: 'Impact, Arial Black, sans-serif'
-        }).setOrigin(0.5);
-
-        // Sports-style hover effects
-        button.on('pointerover', () => {
-            button.setScale(1.1);
-            button.setFillStyle(Phaser.Display.Color.GetColor32(
-                Phaser.Display.Color.Lighten(Phaser.Display.Color.ValueToColor(color), 20)
-            ));
-        });
-
-        button.on('pointerout', () => {
-            button.setScale(1);
-            button.setFillStyle(color);
-        });
-
-        button.on('pointerdown', callback);
-        
-        return { button, text: buttonText };
-    }
-
-    createSidebarStatsPanel() {
-        const width = this.cameras.main.width;
-        const height = this.cameras.main.height;
-        const sidebarX = width - 100; // Right edge sidebar
-        const sidebarWidth = 180;
-        
-        // Sidebar background - full height panel
-        this.sidebarBg = this.add.rectangle(sidebarX, height / 2, sidebarWidth, height - 20, 0x228B22, 0.9);
-        this.sidebarBg.setStrokeStyle(4, 0x8B4513);
-        
-        // Sidebar header
-        this.add.text(sidebarX, 100, '📊 GAME STATS', {
-            fontSize: '16px',
-            fill: '#FFFF00',
-            fontWeight: 'bold',
-            fontFamily: 'Impact, Arial Black, sans-serif',
-            stroke: '#8B4513',
-            strokeThickness: 2
-        }).setOrigin(0.5);
-
-        // Divider line
-        const dividerY = 130;
-        this.add.rectangle(sidebarX, dividerY, 140, 3, 0x8B4513);
-
-        // Current Player Section
-        this.add.text(sidebarX, 150, '🦗 CURRENT', {
-            fontSize: '14px',
-            fill: '#90EE90',
-            fontWeight: 'bold',
-            fontFamily: 'Impact, Arial Black, sans-serif'
-        }).setOrigin(0.5);
-
-        this.playerTypeText = this.add.text(sidebarX, 175, '', {
-            fontSize: '13px',
-            fill: '#FFFFFF',
-            fontWeight: 'bold',
-            fontFamily: 'Impact, Arial Black, sans-serif'
-        }).setOrigin(0.5);
-
-        // Points Section
-        this.add.text(sidebarX, 210, '⚡ SCORE', {
-            fontSize: '14px',
-            fill: '#90EE90',
-            fontWeight: 'bold',
-            fontFamily: 'Impact, Arial Black, sans-serif'
-        }).setOrigin(0.5);
-
-        this.playerPointsText = this.add.text(sidebarX, 235, '', {
-            fontSize: '13px',
-            fill: '#FFFF00',
-            fontWeight: 'bold',
-            fontFamily: 'Impact, Arial Black, sans-serif'
-        }).setOrigin(0.5);
-
-        // Target Section
-        this.add.text(sidebarX, 270, '🎯 TARGET', {
-            fontSize: '14px',
-            fill: '#90EE90',
-            fontWeight: 'bold',
-            fontFamily: 'Impact, Arial Black, sans-serif'
-        }).setOrigin(0.5);
-
-        this.playerProgressText = this.add.text(sidebarX, 295, '', {
-            fontSize: '12px',
-            fill: '#FFD700',
-            fontWeight: 'bold',
-            fontFamily: 'Impact, Arial Black, sans-serif'
-        }).setOrigin(0.5);
-
-        // Progress bar background
-        this.progressBarBg = this.add.rectangle(sidebarX, 325, 120, 15, 0x8B4513);
-        this.progressBarBg.setStrokeStyle(2, 0xFFD700);
-        
-        // Progress bar fill
-        this.progressBarFill = this.add.rectangle(sidebarX - 60, 325, 0, 11, 0x32CD32);
-        this.progressBarFill.setOrigin(0, 0.5);
-
-        // Controls Section
-        this.add.text(sidebarX, height - 120, '🎮 CONTROLS', {
-            fontSize: '12px',
-            fill: '#90EE90',
-            fontWeight: 'bold',
-            fontFamily: 'Impact, Arial Black, sans-serif'
-        }).setOrigin(0.5);
-        
-        this.add.text(sidebarX, height - 95, '↑↓←→', {
-            fontSize: '20px',
-            fill: '#FFFFFF'
-        }).setOrigin(0.5);
-        
-        this.add.text(sidebarX, height - 70, 'or WASD', {
-            fontSize: '11px',
-            fill: '#FFFFFF',
-            fontFamily: 'Impact, Arial Black, sans-serif'
-        }).setOrigin(0.5);
-
-        // Tips section
-        this.add.text(sidebarX, height - 40, '💡 EAT SMALLER BUGS', {
-            fontSize: '10px',
-            fill: '#FFD700',
-            fontFamily: 'Impact, Arial Black, sans-serif'
-        }).setOrigin(0.5);
-        
-        this.add.text(sidebarX, height - 25, 'AVOID BIGGER ONES!', {
-            fontSize: '10px',
-            fill: '#FFD700',
-            fontFamily: 'Impact, Arial Black, sans-serif'
-        }).setOrigin(0.5);
-    }
-
-    updatePlayerInfo() {
-        if (!this.player) return;
-
-        const currentType = GameData.getInsectType(this.player.getCurrentTypeId());
-        const targetType = GameData.getInsectType(this.levelData.targetType);
-
-        this.playerTypeText.setText(currentType.name.toUpperCase());
-        this.playerPointsText.setText(this.player.getScore().toString());
-        this.playerProgressText.setText(targetType.name.toUpperCase());
-        
-        // Update progress bar
-        if (this.progressBarFill) {
-            const progress = Math.min(this.player.getScore() / targetType.points, 1);
-            const maxWidth = 120;
-            const currentWidth = progress * maxWidth;
-            this.progressBarFill.displayWidth = currentWidth;
-            
-            // Change color based on progress
-            if (progress >= 1) {
-                this.progressBarFill.setFillStyle(0xFFD700); // Gold when complete
-            } else if (progress >= 0.7) {
-                this.progressBarFill.setFillStyle(0x90EE90); // Light green when close
-            } else {
-                this.progressBarFill.setFillStyle(0x32CD32); // Regular green
-            }
-        }
-    }
-
-    // Continue with simplified version to get the game working...
-    // I'll include essential methods only
 
     createGrid() {
         this.grid = [];
@@ -571,7 +511,7 @@ class GameScene extends Phaser.Scene {
         this.player = new Player(this, worldPos.x, worldPos.y, this.levelData.startType);
         this.player.setGridPosition(playerX, playerY);
         this.grid[playerX][playerY] = this.player;
-        this.updatePlayerInfo();
+        this.updateStatsDisplay();
     }
 
     gridToWorld(gridX, gridY) {
@@ -661,7 +601,7 @@ class GameScene extends Phaser.Scene {
         // Destroy insect
         insect.destroy();
         
-        this.updatePlayerInfo();
+        this.updateStatsDisplay();
         this.checkLevelComplete();
     }
 
@@ -775,6 +715,30 @@ class GameScene extends Phaser.Scene {
         // Start timer on first move
         if (!this.timerStarted && this.player && this.player.moveHistory.length > 0) {
             this.startTimer();
+        }
+    }
+
+    updateStatsDisplay() {
+        if (this.scoreText && this.player) {
+            this.scoreText.setText(this.player.getScore().toString());
+        }
+        
+        if (this.currentInsectDisplay && this.player) {
+            const currentType = GameData.getInsectType(this.player.getCurrentTypeId());
+            // Update color based on current insect type
+            switch(currentType.name.toLowerCase()) {
+                case 'mite':
+                    this.currentInsectDisplay.setFillStyle(0x8B4513); // Brown
+                    break;
+                case 'flea':
+                    this.currentInsectDisplay.setFillStyle(0x666666); // Gray
+                    break;
+                case 'gnat':
+                    this.currentInsectDisplay.setFillStyle(0x90EE90); // Light green
+                    break;
+                default:
+                    this.currentInsectDisplay.setFillStyle(0xFFFF00); // Yellow
+            }
         }
     }
 }
