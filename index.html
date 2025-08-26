@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CreepyDom - Evolution Game</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(135deg, #2E8B57, #228B22, #32CD32, #90EE90);
+            background-size: 400% 400%;
+            animation: jungleGradient 10s ease infinite;
+            font-family: 'Impact', 'Arial Black', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            overflow: hidden;
+        }
+        
+        @keyframes jungleGradient {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        
+        #game-container {
+            border: 6px solid #8B4513;
+            border-radius: 15px;
+            box-shadow: 0 0 40px rgba(139, 69, 19, 0.8), 
+                        0 0 80px rgba(34, 139, 34, 0.6),
+                        inset 0 0 20px rgba(255, 255, 255, 0.1);
+            background: linear-gradient(45deg, #F5DEB3, #FAEBD7);
+            position: relative;
+        }
+        
+        #game-container::before {
+            content: '';
+            position: absolute;
+            top: -8px;
+            left: -8px;
+            right: -8px;
+            bottom: -8px;
+            background: linear-gradient(45deg, #8B4513, #A0522D, #228B22, #32CD32);
+            border-radius: 20px;
+            z-index: -1;
+            animation: jungleBorderGlow 4s ease-in-out infinite alternate;
+        }
+        
+        @keyframes jungleBorderGlow {
+            0% { opacity: 0.8; transform: scale(1); }
+            100% { opacity: 1; transform: scale(1.02); }
+        }
+        
+        canvas {
+            display: block;
+            border-radius: 10px;
+        }
+        
+        .loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #8B4513;
+            font-size: 24px;
+            font-weight: bold;
+            z-index: 1000;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <div class="loading" id="loading">Loading CreepyDom...</div>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.70.0/dist/phaser.min.js"></script>
+    <script src="src/utils/GameData.js?v=12"></script>
+    <script src="src/utils/SoundManager.js?v=12"></script>
+    <script src="src/entities/Insect.js?v=12"></script>
+    <script src="src/entities/MysteryBox.js?v=12"></script>
+    <script src="src/entities/Player.js?v=12"></script>
+    <script src="src/scenes/BootScene.js?v=12"></script>
+    <script src="src/scenes/MenuScene.js?v=12"></script>
+    <script src="src/scenes/LevelSelectScene.js?v=12"></script>
+    <script src="src/scenes/GameScene.js?v=12"></script>
+    <script src="src/scenes/GameOverScene.js?v=12"></script>
+    <script src="src/scenes/LevelCompleteScene.js?v=12"></script>
+    <script src="src/Game.js?v=12"></script>
+</body>
+</html>

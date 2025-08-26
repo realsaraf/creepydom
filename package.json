@@ -1,0 +1,34 @@
+{
+  "name": "creepydom",
+  "version": "1.0.0",
+  "description": "CreepyDom - Evolution-based puzzle game built with Phaser.js",
+  "main": "index.html",
+  "scripts": {
+    "start": "npx serve .",
+    "dev": "npx serve . -l 3000",
+    "build": "echo 'No build process needed for this HTML5 game'",
+    "test": "echo 'No tests specified'"
+  },
+  "keywords": [
+    "game",
+    "phaser",
+    "html5",
+    "javascript",
+    "evolution",
+    "puzzle",
+    "insects"
+  ],
+  "author": "Ryan",
+  "license": "MIT",
+  "devDependencies": {
+    "serve": "^14.2.4"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yourusername/creepydom.git"
+  },
+  "bugs": {
+    "url": "https://github.com/yourusername/creepydom/issues"
+  },
+  "homepage": "https://github.com/yourusername/creepydom#readme"
+}
