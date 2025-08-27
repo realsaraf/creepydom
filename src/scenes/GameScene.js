@@ -4,6 +4,7 @@ class GameScene extends Phaser.Scene {
     }
 
     create() {
+        console.log('GameScene create() called');
         // Prevent accidental move at game start
         this.gameStartTime = Date.now();
         
@@ -199,59 +200,121 @@ class GameScene extends Phaser.Scene {
         const width = this.cameras.main.width;
         const height = this.cameras.main.height;
 
-        // Create main game background (beige/cream color like in reference)
+        // Create main game background (beige/cream color)
         this.add.rectangle(width / 2, height / 2, width, height, 0xF5DEB3);
         
-        // Create game area background (left side, beige)
-        const gameAreaWidth = width * 0.6; // 60% for game area
-        this.add.rectangle(gameAreaWidth / 2, height / 2, gameAreaWidth, height, 0xF5DEB3);
+        // Create top header hub
+        const headerHeight = 100;
+        this.createTopHeader(width, headerHeight);
         
-        // Create stats panel background (right side, green)
-        const statsWidth = width * 0.4; // 40% for stats
-        const statsPanel = this.add.rectangle(gameAreaWidth + statsWidth / 2, height / 2, statsWidth, height, 0x228B22);
+        // Update game area positioning - center the grid below the header
+        this.startX = (width - (this.gridSize * this.cellSize)) / 2;
+        this.startY = headerHeight + 20;
         
-        // Top brown header bar with timer
-        const headerHeight = 60;
-        const headerBar = this.add.rectangle(width / 2, headerHeight / 2, width, headerHeight, 0x8B4513);
+        // Add jungle decorations in game area
+        this.createJungleBackground(width, headerHeight);
+    }
+
+    createTopHeader(width, headerHeight) {
+        // Header background - make it taller for two rows
+        const headerBg = this.add.rectangle(width / 2, headerHeight / 2, width, headerHeight, 0x228B22);
+        headerBg.setStrokeStyle(4, 0x8B4513);
         
-        // Timer in header (center)
-        this.timerText = this.add.text(width / 2, headerHeight / 2, this.formatTime(this.timeRemaining), {
-            fontSize: '24px',
+        // Row 1: Buttons and Timer (top row)
+        const row1Y = 25;
+        
+        // Retry button (left side) - smaller
+        this.createHeaderButton(60, row1Y, 'RETRY', 0xFF4444, () => {
+            if (this.soundManager) this.soundManager.playClickSound();
+            this.scene.restart();
+        });
+        
+        // Timer (center)
+        this.add.text(width / 2, row1Y - 8, 'TIME', {
+            fontSize: '10px',
+            fill: '#FFFFFF',
+            fontWeight: 'bold',
+            fontFamily: 'Arial'
+        }).setOrigin(0.5);
+        
+        this.timerText = this.add.text(width / 2, row1Y + 8, this.formatTime(this.timeRemaining), {
+            fontSize: '16px',
             fill: '#FFFF00',
             fontWeight: 'bold',
             fontFamily: 'Impact, Arial Black, sans-serif'
         }).setOrigin(0.5);
         
-        // Retry button (left side of header)
-        this.createHeaderButton(100, headerHeight / 2, 'RETRY', 0xFF4444, () => {
-            if (this.soundManager) this.soundManager.playClickSound();
-            this.scene.restart();
-        });
-        
-        // Menu button (right side of header)
-        this.createHeaderButton(width - 100, headerHeight / 2, 'MENU', 0x44FF44, () => {
+        // Menu button (right side) - smaller
+        this.createHeaderButton(width - 60, row1Y, 'MENU', 0x44FF44, () => {
             if (this.soundManager) this.soundManager.playClickSound();
             this.scene.start('MenuScene');
         });
-
-        // Update game area positioning
-        this.startX = (gameAreaWidth - (this.gridSize * this.cellSize)) / 2;
-        this.startY = headerHeight + 20;
-
-        // Create stats panel content
-        this.createStatsPanel(gameAreaWidth, statsWidth, height);
         
-        // Add jungle decorations only in game area
-        this.createJungleBackground(gameAreaWidth);
+        // Row 2: Current and Target (bottom row)
+        const row2Y = 75;
+        
+        // Current insect section (left side of row 2)
+        const currentX = width * 0.3;
+        this.add.text(currentX, row2Y - 15, 'CURRENT', {
+            fontSize: '10px',
+            fill: '#FFFFFF',
+            fontWeight: 'bold',
+            fontFamily: 'Arial'
+        }).setOrigin(0.5);
+        
+        this.currentInsectDisplay = this.add.circle(currentX - 20, row2Y + 5, 12, 0xFFFF00);
+        this.currentInsectDisplay.setStrokeStyle(1, 0x000000);
+        
+        this.currentInsectText = this.add.text(currentX + 5, row2Y + 5, 'MITE', {
+            fontSize: '9px',
+            fill: '#FFFFFF',
+            fontWeight: 'bold',
+            fontFamily: 'Arial'
+        }).setOrigin(0, 0.5);
+        
+        // Score display (below current)
+        this.add.text(currentX - 25, row2Y + 20, 'SCORE:', {
+            fontSize: '8px',
+            fill: '#FFFFFF',
+            fontWeight: 'bold',
+            fontFamily: 'Arial'
+        }).setOrigin(0, 0.5);
+        
+        this.scoreText = this.add.text(currentX + 10, row2Y + 20, '1', {
+            fontSize: '10px',
+            fill: '#FFFF00',
+            fontWeight: 'bold',
+            fontFamily: 'Arial'
+        }).setOrigin(0, 0.5);
+        
+        // Target section (right side of row 2)
+        const targetX = width * 0.7;
+        this.add.text(targetX, row2Y - 15, 'TARGET', {
+            fontSize: '10px',
+            fill: '#FFFFFF',
+            fontWeight: 'bold',
+            fontFamily: 'Arial'
+        }).setOrigin(0.5);
+        
+        this.targetInsectDisplay = this.add.circle(targetX - 20, row2Y + 5, 12, 0x666666);
+        this.targetInsectDisplay.setStrokeStyle(1, 0x000000);
+        
+        const targetType = GameData.getInsectType(this.levelData.targetType);
+        this.targetInsectText = this.add.text(targetX + 5, row2Y + 5, targetType.name.toUpperCase(), {
+            fontSize: '9px',
+            fill: '#FFFFFF',
+            fontWeight: 'bold',
+            fontFamily: 'Arial'
+        }).setOrigin(0, 0.5);
     }
 
     createHeaderButton(x, y, text, color, callback) {
-        const button = this.add.rectangle(x, y, 80, 40, color);
+        const button = this.add.rectangle(x, y, 60, 30, color); // Smaller buttons
         button.setStrokeStyle(2, 0x000000);
         button.setInteractive();
         
         const buttonText = this.add.text(x, y, text, {
-            fontSize: '14px',
+            fontSize: '10px', // Smaller font
             fill: '#FFFFFF',
             fontWeight: 'bold',
             fontFamily: 'Impact, Arial Black, sans-serif'
@@ -408,11 +471,11 @@ class GameScene extends Phaser.Scene {
         }
     }
 
-    createJungleBackground(gameAreaWidth) {
-        // Add jungle vines and leaves only in game area (left side)
+    createJungleBackground(gameAreaWidth, headerHeight) {
+        // Add jungle vines and leaves in game area (below header)
         for (let i = 0; i < 8; i++) {
-            const x = Phaser.Math.Between(0, gameAreaWidth - 20);
-            const y = Phaser.Math.Between(100, this.cameras.main.height - 80);
+            const x = Phaser.Math.Between(20, gameAreaWidth - 20);
+            const y = Phaser.Math.Between(headerHeight + 20, this.cameras.main.height - 80);
             const jungleElements = ['🌿', '🍃', '🌱', '🦋'];
             const element = jungleElements[Math.floor(Math.random() * jungleElements.length)];
             
@@ -736,8 +799,19 @@ class GameScene extends Phaser.Scene {
                 case 'gnat':
                     this.currentInsectDisplay.setFillStyle(0x90EE90); // Light green
                     break;
+                case 'cricket':
+                    this.currentInsectDisplay.setFillStyle(0x228B22); // Green
+                    break;
+                case 'beetle':
+                    this.currentInsectDisplay.setFillStyle(0x4B0082); // Purple
+                    break;
                 default:
                     this.currentInsectDisplay.setFillStyle(0xFFFF00); // Yellow
+            }
+            
+            // Update current insect name
+            if (this.currentInsectText) {
+                this.currentInsectText.setText(currentType.name.toUpperCase());
             }
         }
     }

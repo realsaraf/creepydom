@@ -4,6 +4,7 @@ class LevelSelectScene extends Phaser.Scene {
     }
 
     create() {
+        console.log('LevelSelectScene create() called');
         const width = this.cameras.main.width;
         const height = this.cameras.main.height;
 

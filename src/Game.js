@@ -59,6 +59,9 @@ class Game {
         console.log('Creating Phaser game instance...');
         this.game = new Phaser.Game(this.config);
         
+        // Make game accessible globally for debugging
+        window.game = this.game;
+        
         // Handle window resize for responsive behavior
         window.addEventListener('resize', this.handleResize.bind(this));
         
@@ -82,5 +85,6 @@ class Game {
 
 // Initialize the game when the page loads
 window.addEventListener('load', () => {
-    new Game();
+    const gameInstance = new Game();
+    window.gameInstance = gameInstance;
 });
